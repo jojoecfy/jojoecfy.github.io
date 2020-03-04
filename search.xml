@@ -1,6 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>stream流简单应用</title>
+    <url>/2020/03/01/stream/</url>
+    <content><![CDATA[<p>jdk13已经发布了，许多小伙伴连jdk8都没摸透，笔者在这里简单向各位介绍下jdk8中的一些api，这些也是笔者在实际工作中用到的，如有疏漏，请多海涵。</p>
+<p>如果各位同学想要学习可以先知道基本用法，留个印象，在遇到时就百度，多遇到几次自然会记住，死记硬背只能徒增痛苦，</p>
+<p>java中主要新加了stream流式编程与lambda表达式，lambda主要简化了一些写法，stream则提供了一些方法是编程人员能更方便的处理数据。话不多说我们主要来看具体的应用。</p>
+<a id="more"></a>
+<h3 id="场景一：把list转为map，对象中的id作为key，对象作为value"><a href="#场景一：把list转为map，对象中的id作为key，对象作为value" class="headerlink" title="场景一：把list转为map，对象中的id作为key，对象作为value"></a>场景一：把list转为map，对象中的id作为key，对象作为value</h3><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">Map &lt;String,Object&gt; map&#x3D;new HashMap&lt;&gt;();</span><br><span class="line">for(Object o:list)&#123;</span><br><span class="line">    map.put(o.getid(),o);</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如果是在java8前，大家肯定都会像上面这样写，但这样写不够优雅，在java8 后我们可以更方便的写</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">Map&lt;String, Object&gt; map &#x3D; list.stream().collect(Collectors.toMap(Object::getId, Obejct));</span><br></pre></td></tr></table></figure>
+<p>这样一行就可以搞定，可读性高。</p>
+<h3 id="场景二：计算list中属性和"><a href="#场景二：计算list中属性和" class="headerlink" title="场景二：计算list中属性和"></a>场景二：计算list中属性和</h3><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">heji.setFee(feeList.stream().map(i-&gt;i.getFee()).reduce((float)0, (a, b) -&gt; a + b));</span><br></pre></td></tr></table></figure>
+<h3 id="场景三：获取学生专业的部门信息"><a href="#场景三：获取学生专业的部门信息" class="headerlink" title="场景三：获取学生专业的部门信息"></a>场景三：获取学生专业的部门信息</h3><p>使用option可以很方便的判断null值，并设置默认值</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">Optional.ofNullable(student.getMajor())</span><br><span class="line">    .map(i-&gt;i.getDepartment())</span><br><span class="line">    .map(i-&gt;i.getName())</span><br><span class="line">    .orElse(&quot;&quot;));</span><br></pre></td></tr></table></figure>
+<h3 id="场景四：判断list中join属性是否为空，不为空则将其设置至实体中"><a href="#场景四：判断list中join属性是否为空，不为空则将其设置至实体中" class="headerlink" title="场景四：判断list中join属性是否为空，不为空则将其设置至实体中"></a>场景四：判断list中join属性是否为空，不为空则将其设置至实体中</h3><p>==Optional判断list时无法判断size为0的情况，所以要加上filter==</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">Optional.ofNullable(enrollmentList)</span><br><span class="line">        .filter(i -&gt; i.size() !&#x3D; 0)</span><br><span class="line">        .map(i -&gt; i.get(0))</span><br><span class="line">        .map(i -&gt; i.getJoin())</span><br><span class="line">        .ifPresent(</span><br><span class="line">                join -&gt; &#123;</span><br><span class="line">                    xgStudent.setJoinName(join.getJoinName());</span><br><span class="line">                    xgStudent.setJoinForm(join.getId());</span><br><span class="line">                &#125;</span><br><span class="line">        );</span><br></pre></td></tr></table></figure>
+<h3 id="场景五-获取teacherList的教师姓名列表"><a href="#场景五-获取teacherList的教师姓名列表" class="headerlink" title="场景五:获取teacherList的教师姓名列表"></a>场景五:获取teacherList的教师姓名列表</h3><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">xgStudentService.getTeacherList(teacherids).stream()</span><br><span class="line">.map(t -&gt; t.getName())</span><br><span class="line">.collect(Collectors.toList());</span><br></pre></td></tr></table></figure>
+<h3 id="场景六：获取list的id并将其拼接"><a href="#场景六：获取list的id并将其拼接" class="headerlink" title="场景六：获取list的id并将其拼接"></a>场景六：获取list的id并将其拼接</h3><p>==从左至右为分隔符，前缀，后缀==</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">professionalList.stream()</span><br><span class="line">        .map(i -&gt; i.getId())</span><br><span class="line">        .collect(Collectors.joining(&quot;&#39;,&#39;&quot;, &quot;&#39;&quot;, &quot;&#39;&quot;));</span><br></pre></td></tr></table></figure>
+<h3 id="场景七：将departList按id去重并返回list"><a href="#场景七：将departList按id去重并返回list" class="headerlink" title="场景七：将departList按id去重并返回list"></a>场景七：将departList按id去重并返回list</h3><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">depart.stream().filter(i-&gt;StringUtils.isNotBlank(i.getName())).collect(</span><br><span class="line">        collectingAndThen(</span><br><span class="line">                toCollection(() -&gt; new TreeSet&lt;&gt;(comparing(n -&gt; n.getId()))), ArrayList::new));</span><br></pre></td></tr></table></figure>
+]]></content>
+      <tags>
+        <tag>java</tag>
+        <tag>stream</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>常用Linux命令</title>
     <url>/2020/02/27/linux/</url>
     <content><![CDATA[<p><strong>常用Linux命令</strong></p>
