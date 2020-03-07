@@ -387,4 +387,217 @@
         <tag>业务</tag>
       </tags>
   </entry>
+  <entry>
+    <title>数据库索引概述</title>
+    <url>/2020/02/25/suoyin/</url>
+    <content><![CDATA[<p><strong>概述</strong><br>索引是数据库很重要的一块知识点，在实际工作中会经常涉及，笔者将在本文中向各位介绍一下</p>
+<a id="more"></a>
+<p><em>索引的目的在于提高查询效率</em></p>
+<p><strong>缺点</strong></p>
+<ul>
+<li>虽然索引大大提高了查询速度，同时却会降低更新表的速度，如对表进行INSERT,UPDATE和DELETE。因为更新表时，mysql不仅要保存数据，还要保存一下索引文件</li>
+<li>建立索引会占用磁盘空间的索引文件。一般情况这个问题不太严重，但如果你在要给大表上建了多种组合索引，索引文件会膨胀很宽   </li>
+<li>索引只是提高效率的一个方式，如果mysql有大数据量的表，就要花时间研究建立最优的索引，或优化查询语句。</li>
+</ul>
+<p>代码  </p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">ALTER TABLE 表名 ADD 索引类型 （unique,primary key,fulltext,index）[索引名]（字段名）</span><br><span class="line">&#x2F;&#x2F;普通索引</span><br><span class="line">alter table table_name add index index_name (column_list) ;</span><br><span class="line">&#x2F;&#x2F;唯一索引</span><br><span class="line">alter table table_name add unique (column_list) ;</span><br><span class="line">&#x2F;&#x2F;主键索引</span><br><span class="line">alter table table_name add primary key (column_list) ;</span><br></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">CREATE INDEX index_name ON table_name(username(length)); </span><br><span class="line">&#x2F;&#x2F;create只能添加这两种索引;</span><br><span class="line">CREATE INDEX index_name ON table_name (column_list)</span><br><span class="line">CREATE UNIQUE INDEX index_name ON table_name (column_list)</span><br></pre></td></tr></table></figure>
+<h2 id="使用技巧及注意事项"><a href="#使用技巧及注意事项" class="headerlink" title="使用技巧及注意事项"></a>使用技巧及注意事项</h2><ol>
+<li><p>索引不会包含有NULL的列   </p>
+<pre><code>只要列中包含有NULL值，都将不会被包含在索引中，复合索引中只要有一列含有NULL值，那么这一列对于此符合索引就是无效的。   </code></pre></li>
+<li><p>使用短索引  </p>
+<pre><code>对串列进行索引，如果可以就应该指定一个前缀长度。例如，如果有一个char（255）的列，如果在前10个或20个字符内，多数值是唯一的，那么就不要对整个列进行索引。短索引不仅可以提高查询速度而且可以节省磁盘空间和I/O操作。</code></pre></li>
+<li><p>索引列排序  </p>
+<pre><code>mysql查询只使用一个索引，因此如果where子句中已经使用了索引的话，那么order by中的列是不会使用索引的。因此数据库默认排序可以符合要求的情况下不要使用排序操作，尽量不要包含多个列的排序，如果需要最好给这些列建复合索引。</code></pre></li>
+<li><p>like语句操作<br>一般情况下不鼓励使用like操作，如果非使用不可，注意正确的使用方式。like ‘%aaa%’不会使用索引，而like ‘aaa%’可以使用索引。</p>
+</li>
+<li><p>不要在列上进行运算</p>
+</li>
+<li><p>不使用NOT IN 、&lt;&gt;、！=操作，但&lt;,&lt;=，=，&gt;,&gt;=,BETWEEN,IN是可以用到索引的</p>
+</li>
+<li><p>索引要建立在经常进行select操作的字段上。<br>  这是因为，如果这些列很少用到，那么有无索引并不能明显改变查询速度。相反，由于增加了索引，反而降低了系统的维护速度和增大了空间需求。</p>
+</li>
+<li><p>索引要建立在值比较唯一的字段上。</p>
+</li>
+<li><p>对于那些定义为text、image和bit数据类型的列不应该增加索引。因为这些列的数据量要么相当大，要么取值很少。</p>
+</li>
+<li><p>在where和join中出现的列需要建立索引。</p>
+</li>
+<li><p>where的查询条件里有不等号(where column != …),mysql将无法使用索引。</p>
+</li>
+<li><p>如果where字句的查询条件里使用了函数(如：where DAY(column)=…),mysql将无法使用索引。</p>
+</li>
+<li><p>在join操作中(需要从多个数据表提取数据时)，mysql只有在主键和外键的数据类型相同时才能使用索引，否则及时建立了索引也不会使用。</p>
+</li>
+</ol>
+<h2 id="索引的结构及种类"><a href="#索引的结构及种类" class="headerlink" title="索引的结构及种类"></a>索引的结构及种类</h2><p>数据库索引从物理结构上分为聚集索引和非聚集索引</p>
+<ol>
+<li>聚集索引即索引项在物理结构上是连续的，依据索引规则紧密排序，mysql的主键索引就是聚集索引，优点是查找快，缺点是增删耗费的时间慢，因为如果以乱序插入就会不断破坏原有数据的结构，尤其像mysql索引以b+树结构存储，如以uuid作为主键将耗费大量时间</li>
+<li>非聚集索引即为索引项在物理结构上不连续  </li>
+</ol>
+<p><strong>数据库索引从逻辑结构上分为几种，主键索引，唯一索引，联合索引，位图索引</strong></p>
+<ol>
+<li>主键索引及表在建立是以主键作为索引项建立的索引，默认为聚集索引</li>
+<li>唯一索引，能确定某个数据列将只包含彼此各不相同的值，这么做的好处：一是简化了MySQL对这个索引的管理工作，这个索引也因此而变得更有效率；二是MySQL会在有新记录插入数据表时，自动检查新记录的这个字段的值是否已经在某个记录的这个字段里出现过了；如果是，MySQL将拒绝插入那条新记录。也就是说，唯一索引可以保证数据记录的唯一性。事实上，在许多场合，人们创建唯一索引的目的往往不是为了提高访问速度，而只是为了避免数据出现重复。</li>
+<li>联合索引可以覆盖多个数据列不过遵循最左前缀原则</li>
+<li>位图索引，用于重复值较高的字段例如性别等，1是0非查询时利用&amp;运算快速求解  </li>
+</ol>
+<p><strong>最左前缀</strong></p>
+<ol>
+<li><strong>索引左前缀性的第一层意思：必须用到索引的第一个字段</strong>。select * from AAA where b=:xxx and c=sysdate;则不会用到索引，因为必须有a出现在where 语句中才会使用到该索引。</li>
+<li><strong>索引前缀性的第二层意思：对于索引的第一个字段，用like时左边必须是固定值，通配符只能出现在右边</strong>。select * from AAA where a like ‘1%’;会用到索引;而select * from AAA where a like ‘%1’;不会用到索引。</li>
+<li><strong>索引前缀性的第三层意思：如果在字段前加了函数，则索引会被抑制</strong>，例如：select * from aaa where trim(a)=1,则不会用到索引。  <pre><code>在字段前嵌入了表达式，索引也将被抑制。假设a是date格式的，那么where a+7&lt;sysdate将不会用到索引，而where a&lt;sysdate-7会用到索引。    </code></pre>　还有两个特殊声明：  <pre><code>1). select * from AAA where a=:xxx and c=sysdate与 select * from AAA where c=sysdate and a=:xxx;都会用到索引，即与where语句中字段出现的顺序无关；   
+2).select * from AAA where a=:xxx and b=1;会使用索引，此时A出现，即使其他字段不是索引字段也会使用到索引。</code></pre></li>
+</ol>
+]]></content>
+      <tags>
+        <tag>数据库</tag>
+        <tag>索引</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>jvm简述</title>
+    <url>/2020/02/19/jvm/</url>
+    <content><![CDATA[<p><strong>概述</strong><br>jvm是java中很重要的一块知识，也是面试常问的问题之一，今天笔者就带你深入了解一下jvm的知识，本文分以下几部分</p>
+<ol>
+<li>jvm的内存模型</li>
+<li>jvm的垃圾回收机制及回收算法</li>
+<li>jvm的常见参数</li>
+<li>jvm的监控及调优<br>​​<a id="more"></a><h2 id="一、jvm内存模型"><a href="#一、jvm内存模型" class="headerlink" title="一、jvm内存模型"></a>一、jvm内存模型</h2><img src="https://img-blog.csdnimg.cn/20190414110612174.jpeg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80MDUxNjc4OA==,size_16,color_FFFFFF,t_70" alt="jvm" title="jvm内存模型"></li>
+</ol>
+<p>上图即为jvm的内存模型示意图，jvm的主要分为堆、栈、方法区、程序计数器四部分。其中方法区和堆是线程共享的。栈、程序计数器是线程私有的。下面我将逐一解释这几个部分</p>
+<p><strong>程序计数器</strong>：在多线程情况下，线程会根据时间片来抢夺CPU的资源。即便在多线程情况下，cpu也只会在同一时间执行一条语句，程序计数器即在每一个线程执行时记录其执行位置，以便被打断后能恢复至正确的位置执行。</p>
+<p><strong>栈</strong>：栈里存储的都是<strong>局部变量</strong>，用以引用堆和方法区中的对象和常量。此处可抛出StackOverflowException和OutOfMemoryException（大多数–此处在《深入理解JVM虚拟机》中一书提到）</p>
+<p><strong>堆</strong>：堆中存放的是<strong>对象的实例</strong>。绝大部分的对象实例在这里分配内存。堆可以处在物理不连续的内存空间上，只要逻辑上连续就可以。java堆在是实现时，可以是固定的，也可以是可扩展的（-Xmx 最大）（ -Xms最小）超过可扩展的最大大小时抛出OOM异常。堆的大小在理论上应不超过32G，一旦超过则jvm原有对堆的优化就会失效，在提升jvm大小时要考虑这个问题。</p>
+<p><strong>方法区</strong>： 方法区中存放的都是<strong>常量和静态变量、被加载的类信息以及被即时编译器编译后的代码</strong>。方法区和永久带分别为jvm的规范和HotSpot虚拟机的具体实现。运行时常量池也是方法区的一部分。</p>
+<p><strong>方法区的回收</strong>：主要是对常量池的回收及对类型的卸载。</p>
+<p><strong>回收类</strong>：1、此类的所有实例已被回收。 2、此类的ClassLoader已被回收 3、此类在任何地方没有没反射引用</p>
+<h2 id="二、jvm的垃圾回收机制及回收算法"><a href="#二、jvm的垃圾回收机制及回收算法" class="headerlink" title="二、jvm的垃圾回收机制及回收算法"></a>二、jvm的垃圾回收机制及回收算法</h2><p><strong>垃圾回收算法（*）</strong></p>
+<p>垃圾回收的区域位于<strong>堆</strong></p>
+<ul>
+<li><p>引用计数法<br>循环引用</p>
+</li>
+<li><p>可达性分析<br>通过GCRoot向下查找，查找的路径称为引用链，一旦某个对象不处于引用链上，则该对象是不可用的。</p>
+</li>
+</ul>
+<p>可作为GCRoot的对象：</p>
+<ul>
+<li><strong>虚拟机栈(栈帧中的局部变量表)中引用的对象</strong></li>
+<li><strong>方法区中类静态属性引用的对象</strong></li>
+<li><strong>方法区中常量引用的对象</strong></li>
+<li><strong>本地方法栈中Native方法引用的对象</strong></li>
+</ul>
+<p><strong>标记—清除算法</strong><br>标记清除算法分为两个部分标记和清除</p>
+<p>标记即从GCRoot开始标记存活对象，之后清除其他未被标记对象</p>
+<p>效率问题：标记和清除两步的效率都不高</p>
+<p>空间问题：标记—清除算法清理对象时并不会移动对象，所以在清除过后易产生大量不连续的内存碎片，在以后分配大对象时，由于连续空间不足会提前触发GC</p>
+<p><strong>复制算法</strong><br>复制法即将目标内存区域分为两块，每次只使用其中一块，一块内存用完就将此块内存存活对象复制至另一块，再将此块内存清空。新生代的收集及采用此种算法，因为在新生代的对象存活率低。在jvm中将新生代分为<strong>较大Eden和两个较小的survivor空间</strong>。每次使用其中一块Eden和survivor，回收时将存活的放入另一块survivor中，再清理掉之前的。默认比例8:1:1。也就是每次新生代中可用内存空间为整个新生代容量的90% ( 80%+10% )，只有10% 的内存会被“浪费”。survivor空间不够时，需要依赖其他内存（老年代）进行分配担保，即让对象进入老年代。</p>
+<p><strong>新生代进入老生代的情况</strong></p>
+<blockquote>
+<ul>
+<li>对象优先在Eden分配<strong>当Eden区没有足够空间进行分配时，虚拟机将发起一次MinorGC</strong>，。现在的商业虚拟机一般都采用复制算法来回收新生代，将内存分为一块较大的Eden空间和两块较小的Survivor空间，每次使用Eden和其中一块Survivor。 当进行垃圾回收时，将Eden和Survivor中还存活的对象一次性地复制到另外一块Survivor空间上，最后处理掉Eden和刚才的Survivor空间。（HotSpot虚拟机默认Eden和Survivor的大小比例是8:1）<strong>当Survivor空间不够用时，需要依赖老年代进行分配担保。</strong></li>
+<li><strong>大对象直接进入老年代</strong>。所谓的大对象是指，需要大量连续内存空间的Java对象，最典型的大对象就是那种很长的字符串以及数组。<br>长期存活的对象(-XX:MaxTenuringThreshold)**将进入老年代。当对象在新生代中经历过一定次数（默认为15）的Minor GC后，就会被晋升到老年代中。</li>
+<li>动态对象年龄判定。为了更好地适应不同程序的内存状况，虚拟机并不是永远地要求对象年龄必须达到了MaxTenuringThreshold才能晋升老年代，如果在Survivor空间中<strong>相同年龄所有对象大小的总和大于Survivor空间的一半，年龄大于或等于该年龄的对象</strong>就可以直接进入老年代，无须等到MaxTenuringThreshold中要求的年龄。   </li>
+</ul>
+</blockquote>
+<p><strong>为什么分代收集</strong></p>
+<ul>
+<li>不同的对象的生命周期(存活情况)是不一样的，而不同生命周期的对象位于堆中不同的区域，因此对堆内存不同区域采用不同的策略进行回收可以提高 JVM 的执行效率.<blockquote>
+<p><strong>HotSpot算法实现</strong></p>
+<ol>
+<li>枚举根结点<br>GC Roots在全局性引用（常量或类静态属性）和执行上下文（栈帧的本地变量表）中，如果太多的话不可能一一进行检查，太消耗时间。同时，GC检查时会出现GC停顿，即可达&gt; 性分析工作必须在一个能确保一致性的快照中进行，此时在整个分析期间整个执行系统仿佛被冻结，对象的引用关系不会出现变化，否则分析结果无法保证。即GC进行时必须停&gt; 顿所有的Java执行线程。目前虚拟机使用的都是准确式GC（虚拟机自己知道内存中某个位置的具体数据是什么类型，即知道哪些地方存放着对象引用）。在类加载完成时，使用&gt; OopMap数据结构（OOP，普通对象指针）来进行查看对象的存放地址。GC扫描时就可以直接得到信息。</li>
+<li>安全点<br>GC Roots枚举的问题：可能导致引用关系变化，或者说OopMap内容变化的指令非常多。如果每一条指定都生成OopMap，那将会需要大量的额外空间，GC的空间成本将会变很高。<br>安全点：没有每条指令都生成OopMap，只在特定位置记录了信息，即程序执行时并非在所有地方都能停顿下来开始GC，只有在到达安全点时才能暂停。由于安全点的选定既不能太&gt; 少以致于让GC等待时间太长，也不能太过于频繁以致于过分增大运行时的负荷。因此，安全点的选定基本上是以程序“是否具有让程序长时间执行的特征”来选定的。长时间运行即&gt; 指令序列复用，例如方法调用、循环跳转、异常跳转等。<br>另一个问题是如何在GC发生时让所有线程（不包括执行JNI调用的线程）都到最近的安全点上再停顿下来。<br>有两种方式：抢先式中断和主动式中断。<br>抢先式中断即不需要线程的先执行代码主动配合，而是在GC发生时，先全部中断，然后发现有线程中断的不在安全点上，就恢复线程，让其跑到安全点上再停顿。（几乎没用这种方&gt; 式。）<br>主动式中断： 当GC需要中断时，不直接对线程操作，仅仅简单设置一个标志，各线程主动去轮询这个标志，发现中断标志时就自己中断挂起。轮询标志的地方和安全点是重合的，&gt; 另外再加上创建对象需要分配内存的地方。</li>
+<li>安全区域<br>安全点机制保证了程序执行时，在不太长的时间内就会遇到可进入GC的安全点。但是对于不执行（即没有分配CPU时间）的程序，如线程处于sleep或Blocked状态，线程就无法响&gt; 应JVM的中断请求，走到安全点去挂起。JVM也不太可能等待线程重新被分配CPU时间。这时就需要安全区域来解决了。<br>安全区域即在一段代码片段中，引用关系不会发生变化。在这个区域任意地方开始GC都是安全的。可以看作是被扩展了的安全点。<br>线程到达安全区域时，先标识自己进入安全区域。当这段时间内JVM要发起GC时，就不用管标识安全区域状态的线程了。当线程要离开安全区域时，先检查系统是否完成了根结点枚&gt; 举或整个GC过程，完成了就继续执行，没有就等待直到收到可以安全离开安全区域的信号为止。</li>
+</ol>
+</blockquote>
+</li>
+</ul>
+<h3 id="内存分配担保机制"><a href="#内存分配担保机制" class="headerlink" title="内存分配担保机制"></a>内存分配担保机制</h3><pre><code>我们知道如果对象在复制到Survivor区时若Survivor空间不足，则会出发担保机制，将对象转入老年代；但老年代的能力也不是无限的，因此需要在minor GC时做一个是否需要Major GC 的判断：</code></pre><p>如果老年代的剩余空间 &lt; 之前转入老年代的对象的平均大小，则触发Major GC</p>
+<p>如果老年代的剩余空间 &gt; 之前转入老年代的对象的平均大小，并且允许担保失败，则直接Minor GC，不需要做Full GC</p>
+<p>如果老年代的剩余空间 &gt; 之前转入老年代的对象的平均大小，并且不允许担保失败，则触发Major GC</p>
+<p>出发点还是尽量为对象分配内存。但是一般会配置允许担保失败，避免频繁的去做Full GC。</p>
+<p><strong>标记—整理算法</strong><br>     标记整理算法的标记过程类似标记清除算法，但后续步骤不是直接对可回收对象进行清理，而是让所有存活的对象都向一端移动，然后直接清理掉端边界以外的内存，类似于磁盘整理的过程，该垃圾回收算法<strong>适用于对象存活率高的场景（老年代）。无内存碎片</strong></p>
+<p><strong>新生代、老年代、永久代</strong></p>
+<pre><code>新生代的目标就是尽可能快速的收集掉那些生命周期短的对象，一般情况下，所有新生成的对象首先都是放在新生代的. 如果老年代也满了，就会触发一次FullGC，也就是新生代、老年代都进行回收。注意，新生代发生的GC也叫做MinorGC，MinorGC发生频率比较高，不一定等 Eden区满了才触发。</code></pre><p>老年代存放的都是一些生命周期较长的对象，就像上面所叙述的那样，在新生代中经历了N次垃圾回收后仍然存活的对象就会被放到老年代中<br>永久代主要用于存放静态文件，如Java类、方法等</p>
+<h3 id="垃圾收集器"><a href="#垃圾收集器" class="headerlink" title="垃圾收集器"></a>垃圾收集器</h3><p> <img src="http://static.zybuluo.com/Rico123/9hswys8w1pqy0ch06vmlbqi2/%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E5%99%A8.jpg" alt="垃圾收集器" title="垃圾收集器"></p>
+<ul>
+<li><strong>Serial收集器（复制算法)</strong>: 新生代单线程收集器，标记和清理都是单线程，优点是简单高效；</li>
+<li><strong>Serial Old收集器 (标记-整理算法)</strong>: 老年代单线程收集器，Serial收集器的老年代版本；</li>
+<li><strong>ParNew收集器 (复制算法)</strong>:新生代收并行集器，实际上是Serial收集器的多线程版本，在多核CPU环境下有着比Serial更好的表现；</li>
+<li><strong>Parallel Scavenge收集器 (复制算法)</strong>: 新生代并行收集器，追求高吞吐量，高效利用 CPU。吞吐量 =用户线程时间/(用户线程时间+GC线程时间)，高吞吐量可以高效率的利用CPU时间，尽快完成程序的运算任务，适合后台应用等对交互相应要求不高的场景；</li>
+<li><strong>Parallel Old收集器 (标记-整理算法)</strong>： 老年代并行收集器，吞吐量优先，Parallel Scavenge收集器的老年代版本；</li>
+<li><strong>CMS(Concurrent Mark Sweep)收集器（标记-清除算法）</strong>：老年代并行收集器，以获取最短回收停顿时间为目标的收集器，具有高并发、低停顿的特点，追求最短GC回收停顿时间。</li>
+<li><strong>G1(Garbage First)收集器 (标记-整理算法)</strong>：Java堆并行收集器，G1收集器是JDK1.7提供的一个新收集器，G1收集器基于“标记-整理”算法实现，也就是说不会产生内存碎片。此外，G1收集器不同于之前的收集器的一个重要特点是：G1回收的范围是整个Java堆(包括新生代，老年代)，而前六种收集器回收的范围仅限于新生代或老年代。</li>
+</ul>
+<p><strong>内存泄露问题</strong></p>
+<ul>
+<li><strong>静态集合类</strong>: 如 HashMap、Vector 等集合类的静态使用最容易出现内存泄露，因为这些静态变量的生命周期和应用程序一致，所有的对象Object也不能被释放</li>
+<li>各种资源连接包括<strong>数据库连接、网络连接、IO连接</strong>等没有显式调用close关闭</li>
+<li><strong>监听器</strong>的使用，在释放对象的同时没有相应删除监听器的时候也可能导致内存泄露。</li>
+</ul>
+<h2 id="三、jvm的常见参数"><a href="#三、jvm的常见参数" class="headerlink" title="三、jvm的常见参数"></a>三、jvm的常见参数</h2><ul>
+<li><p>-Xmx3550m：设置JVM最大堆内存为3550M。</p>
+</li>
+<li><p>-Xms3550m：设置JVM初始堆内存为3550M</p>
+</li>
+<li><p>-Xmn2g：设置年轻代大小为2G。</p>
+</li>
+<li><p>-XX:NewRatio=4：设置年轻代（包括1个Eden和2个Survivor区）与年老代的比值。表示年轻代比年老代为1:4。</p>
+</li>
+<li><p>-XX:SurvivorRatio=4：设置年轻代中Eden区与Survivor区的比值。表示2个Survivor区（JVM堆内存年轻代中默认有2个大小相等的Survivor区）与1个Eden区的比值为2:4，即1个Survivor区占整个年轻代大小的1/6。</p>
+</li>
+</ul>
+<h2 id="四、jvm的监控及调优"><a href="#四、jvm的监控及调优" class="headerlink" title="四、jvm的监控及调优"></a>四、jvm的监控及调优</h2><p>jvm的监控与调优一方面依赖第三方工具，但更多的还是利用jdk中自带的一些工具</p>
+<p>包括jmap，jstack，jconsole等</p>
+<p> <strong>gc日志输出</strong></p>
+<pre><code>在jvm启动参数中加入 -XX:+PrintGC -XX:+PrintGCDetails -XX:+PrintGCTimestamps -XX:+PrintGCApplicationStopedTime，jvm将会按照这些参数顺序输出gc概要信息，详细信息，gc时间信息，gc造成的应用暂停时间。如果在刚才的参数后面加入参数 -Xloggc:文件路径，gc信息将会输出到指定的文件中</code></pre>]]></content>
+      <tags>
+        <tag>java</tag>
+        <tag>jvm</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>HashMap原理解读</title>
+    <url>/2019/04/03/hashMap/</url>
+    <content><![CDATA[<p><strong>概述</strong><br>     Map是以key – value 结构存储数据（键值对映射），在java中Map是一个接口，其实现类包括但不限于HashMap（数组+链表/红黑树）、TreeMap（红黑树）、ConcurrentHashMap（cas并发）、HashTable（全局锁并发）、LinkedHashMap（链表）。hashmap是map的一种。</p>
+<a id="more"></a>
+<p><strong>HashMap是基于哈希表的Map接口的非同步实现。此实现提供所有可选的映射操作，并允许使用null值和null键。此类不保证映射的顺序，特别是它不保证该顺序恒久不变。</strong></p>
+<p>本文将着重介绍HashMap，大致分为三部分</p>
+<ol>
+<li>底层原理 及具体操作时HashMap的处理（基本属性、常量、resize操作等）</li>
+<li>多线程下的问题。</li>
+<li>基本api </li>
+</ol>
+<h2 id="底层原理"><a href="#底层原理" class="headerlink" title="底层原理"></a>底层原理</h2><p> HashMap 的底层是是用数组+链表，如图<br><img src='https://img-blog.csdn.net/20131105152215718?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvdmtpbmdfd2FuZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast'></img></p>
+<p>HashMap里的元素以Node（静态内部类）为单位，其中属性包含node的hash值，node的key、value及next</p>
+<p><strong>注意：下列代码只为主要属性及构造函数，其余方法并未列出，不是没有</strong></p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">static class Node&lt;K,V&gt; implements Map.Entry&lt;K,V&gt; &#123;</span><br><span class="line">        final int hash;</span><br><span class="line">       final K key;</span><br><span class="line">        V value;</span><br><span class="line">        Node&lt;K,V&gt; next;</span><br><span class="line"></span><br><span class="line">       Node(int hash, K key, V value, Node&lt;K,V&gt; next) &#123;</span><br><span class="line">           this.hash &#x3D; hash;</span><br><span class="line">           this.key &#x3D; key;</span><br><span class="line">           this.value &#x3D; value;</span><br><span class="line">           this.next &#x3D; next;</span><br><span class="line">       &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Node根据key的hash值去确定Node在数组中所在位置，若此位置已有Node，则将新Node加入至链表尾部，当数组长度超过 <strong>MIN_TREEIFY_CAPACITY= 64</strong>  且单budget的长度超过 <strong>TREEIFY_THRESHOLD = 8</strong>  时此budget的链表转化为红黑树，当链表长度小于 <strong>UNTREEIFY_THRESHOLD = 6</strong> 时转为链表，HashMap的key值与value值均可为空，但只能有一个key值为空。当key值为空时，haah值为0</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">public static int hashCode(Object o) &#123;</span><br><span class="line">      return o !&#x3D; null ? o.hashCode() : 0;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<p> HashMap的默认长度及自定义长度均为2^n，即便自定义长度不为2^n，hashMap也会优化为2^n，hashMap的实际容量计算函数为</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">static final int tableSizeFor(int cap) &#123;</span><br><span class="line"></span><br><span class="line">        int n &#x3D; cap - 1;</span><br><span class="line">       &#x2F;&#x2F;设n为1xxxxxxxx（8位）</span><br><span class="line">        n |&#x3D; n &gt;&gt;&gt; 1;</span><br><span class="line">        &#x2F;&#x2F; n &#x3D; 11xxxxxxx</span><br><span class="line">        n |&#x3D; n &gt;&gt;&gt; 2;</span><br><span class="line">        &#x2F;&#x2F; n &#x3D; 1111xxxxx</span><br><span class="line">        n |&#x3D; n &gt;&gt;&gt; 4;</span><br><span class="line">        &#x2F;&#x2F; n &#x3D; 11111111x</span><br><span class="line">        n |&#x3D; n &gt;&gt;&gt; 8;</span><br><span class="line">        &#x2F;&#x2F; n &#x3D; 111111111</span><br><span class="line">        n |&#x3D; n &gt;&gt;&gt; 16;</span><br><span class="line">        &#x2F;&#x2F; n &#x3D; 111111111</span><br><span class="line">        return (n &lt; 0) ? 1 : (n &gt;&#x3D; MAXIMUM_CAPACITY) ? MAXIMUM_CAPACITY : n + 1;</span><br><span class="line">        &#x2F;&#x2F; n &#x3D; 1000000000(9位)</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p>HashMap之所以要将table长度设为2^n是为了能更好的利用table空间，减少hash冲突，运算更快</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">&#x2F;&#x2F;tablelen-1 末尾为1 进行&amp;操作时会更利于index分散</span><br><span class="line">index &#x3D; （table.length - 1） &amp; hash(key);</span><br></pre></td></tr></table></figure>
+
+<img src='https://img-blog.csdnimg.cn/20190411163557709.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80MDUxNjc4OA==,size_16,color_FFFFFF,t_70'/>
+
+
+<p><strong>resize</strong>    </p>
+<p>当HashMap中的元素越来越多的时候，hash冲突的几率也就越来越高，因为数组的长度是固定的。所以为了提高查询的效率，就要对HashMap的数组进行扩容，数组扩容这个操作也会出现在ArrayList中，这是一个常用的操作，而在HashMap数组扩容之后，最消耗性能的点就出现了：原数组中的数据必须重新计算其在新数组中的位置，并放进去，这就是resize。    </p>
+<p>   那么HashMap什么时候进行扩容呢？当HashMap中的元素个数超过数组大小<em>loadFactor时，就会进行数组扩容，loadFactor的默认值为0.75，这是一个折中的取值。也就是说，默认情况下，数组大小为16，那么当HashMap中元素个数超过16</em>0.75=12的时候，就把数组的大小扩展为 2*16=32，即扩大一倍，然后重新计算每个元素在数组中的位置，而这是一个非常消耗性能的操作，所以如果我们已经预知HashMap中元素的个数，那么预设元素的个数能够有效的提高HashMap的性能。</p>
+<h2 id="并发操作问题"><a href="#并发操作问题" class="headerlink" title="并发操作问题"></a>并发操作问题</h2><p>一、死循环</p>
+<p>在jdk1.8之前，resize操作时，当两个线程同时触发resize操作，基于头插法可能会导致链表节点的循环引用，在下次调用get操作查找一个不存在的key时，会在循环链表中出现死循环。</p>
+<p>在jdk1.8中，在插入时，声明两对指针，维护两个连链表，依次在末端添加新的元素。（在多线程操作的情况下，无非是第二个线程重复第一个线程一模一样的操作），因而不再有多线程put导致死循环，但是依然有其他的弊端，比如数据丢失（与内存可见性有关）或size不准确。因此多线程情况下还是建议使用concurrenthashmap。</p>
+<p>二·、fail-fast</p>
+<p>hashMap用modCount来维护修改次数，modCount顾名思义就是修改次数，对HashMap内容的修改都将增加这个值，那么在迭代器初始化过程中会将这个值赋给迭代器的expectedModCount，在迭代过程中，判断modCount跟expectedModCount是否相等，如果不相等就表示已经有其他线程修改了Map，将抛出ConcurrentModificationException，这就是所谓fail-fast策略。、</p>
+<p>注意到modCount声明为volatile，保证线程之间修改的可见性。</p>
+<h2 id="API"><a href="#API" class="headerlink" title="API"></a>API</h2><img src='https://img-blog.csdnimg.cn/20190411164619990.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80MDUxNjc4OA==,size_16,color_FFFFFF,t_70' />
+
+
+]]></content>
+      <tags>
+        <tag>java</tag>
+        <tag>hashmap</tag>
+      </tags>
+  </entry>
 </search>

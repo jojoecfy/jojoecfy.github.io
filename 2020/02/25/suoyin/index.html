@@ -6,7 +6,7 @@
     
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
   <title>
-    Excel导入优化 |  jojoecfy的个人博客
+    数据库索引概述 |  jojoecfy的个人博客
   </title>
   <meta name="generator" content="hexo-theme-yilia-plus">
   
@@ -31,7 +31,7 @@
   <div id="app">
     <main class="content">
       <section class="outer">
-  <article id="post-excel" class="article article-type-post" itemscope
+  <article id="post-suoyin" class="article article-type-post" itemscope
   itemprop="blogPost" data-scroll-reveal>
 
   <div class="article-inner">
@@ -39,7 +39,7 @@
     <header class="article-header">
        
 <h1 class="article-title sea-center" style="border-left:0" itemprop="name">
-  Excel导入优化
+  数据库索引概述
 </h1>
   
 
@@ -48,7 +48,7 @@
 
     
     <div class="article-meta">
-      <a href="/2020/02/25/excel/" class="article-date">
+      <a href="/2020/02/25/suoyin/" class="article-date">
   <time datetime="2020-02-25T11:13:10.000Z" itemprop="datePublished">2020-02-25</time>
 </a>
       
@@ -59,7 +59,7 @@
         <span class="post-meta-item-icon">
             <i class="ri-quill-pen-line"></i>
             <span class="post-meta-item-text"> 字数统计:</span>
-            <span class="post-count">1.3k字</span>
+            <span class="post-count">1.7k字</span>
         </span>
     </span>
 
@@ -68,7 +68,7 @@
         <span class="post-meta-item-icon">
             <i class="ri-book-open-line"></i>
             <span class="post-meta-item-text"> 阅读时长≈</span>
-            <span class="post-count">4分钟</span>
+            <span class="post-count">6分钟</span>
         </span>
     </span>
 </div>
@@ -95,34 +95,65 @@
       
 
       
-      <h1 id="导入优化"><a href="#导入优化" class="headerlink" title="导入优化"></a>导入优化</h1><p>工作中遇到一个问题，在进行导入操作时，将大量数据通过excel导入至数据库中时，性能奇差，导入200条数据已是极限，已经远远达不到预期效果，经笔者解决后效率得到大幅提升，由200-300条数据死机到10s内导入2000条以上，基本达到业务要求，今日便与各位分享一下各中心得与问题。</p>
+      <p><strong>概述</strong><br>索引是数据库很重要的一块知识点，在实际工作中会经常涉及，笔者将在本文中向各位介绍一下</p>
 <a id="more"></a>
-<p>  基本业务逻辑：</p>
-<pre><code>此功能为导入学生信息，导入的学生信息可以为新增数据，也可以为已有数据（根据身份证判断），导入的学生信息包括学生个人信息，学生户籍地、实际居住地信息，学生专业信息，导入时同时还有对未注册学生进行注册账户操作，在导入时记录log</code></pre><p>原有操作逻辑：</p>
-<p>从excel读取每一条要导入的dataList ，遍历dataList,在每一条数据中进行如下操作</p>
-<p>一、 拿到id判断是插入还是更新，如为更新操作，则省略部分字段校验的字段与更新，插入操作则对每个字段按规则进行校验并创建学生账号。</p>
-<p>二、根据数据去数据库中查询户籍地信息是否正确，此处学生的户籍地信息分为省，市，区，具体地址四个字段，主要依据行政区划表查询省市区是否对应，实际居住地逻辑于此相同。</p>
-<p>三、学生专业信息包含文化层次、报名方向，报名层次，专业四个字段，而学生信息中包含第一志愿与第二志愿，志愿信息由报名方向，报名层次，专业组成，每一条志愿都须去招生计划表中查询招生计划是否存在，</p>
-<p>四、查询推荐教师是否存在（查询user表）</p>
-<p>五、向log表中记录log</p>
-<p>六、保存（更新）记录</p>
-<p>这个项目为老项目，从前开发者为了省力直接调用已有api，哪怕十分冗余，大致看去，很多数据库相关操作可以放到循环外执行，只是为了方便把数据库操作放到循环里，所有笔者一开始尽量把有关数据库操作放到了循环外。但即便这样实现效果依旧不理想。经过一段时间的考虑笔者将代码优化至如下流程。</p>
-<p>1、创建datalist，优化初始空间，由于理论上单次导入学生不会超过10000条，直接将list初始化容量控制在这个范围，</p>
-<p>从数据库中查出学生集合，按此容量创建并填充idmap</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">    Map&lt;String, ZsStudent&gt; identityCardMap </span><br><span class="line">&#x3D; new HashMap&lt;String, ZsStudent&gt;((int) (dbStuList.size() &#x2F; 0.75) + 1);</span><br></pre></td></tr></table></figure>
-<p>避免多次rehash降低效率，id为key, student 为value，将excel数据放入list———datalist</p>
-<p>2、查询所有有关招生计划，转为list，值为文化层次、报名方向，报名层次，专业拼接——招生list</p>
-<p>  在用户登录时查询省市区值，将其放入redis—-地区缓存（分为3个map）（先删后存）</p>
-<p>推荐教师读取其他功能配置，放入缓存—–教师缓存</p>
-<p>2、创建insertList，updateList，每个list3个，每个list的size控制在3000，遍历dataMap，如为插入数据则将其放入insertList，update同理</p>
-<p>遍历map时按与招生计划一样的规则填充list—–志愿list，遍历datalist时通过地区缓存判断学生地区是否正确，通过教师缓存判断教师是否为所配置推荐教师，如异常则break跳出循环，返回提示,datalist遍历完毕。</p>
-<p>3、判断招生list是否存在志愿list？“”：返回提示；</p>
-<p>4、log不在单独记录，只记录共读取数据数。</p>
-<p>5、创建中间表，此表有所有所需要的字段，将updateList放入此表，将此表更新至各表，删除此表，</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">  &#x2F;*创建临时表*&#x2F;</span><br><span class="line">   void creatStudentAndUserTemp();</span><br><span class="line"></span><br><span class="line">   &#x2F;*需要更新的学生数据插入临时表*&#x2F;</span><br><span class="line">   void insertStudentAndUser(List&lt;ZsStudent&gt; updateStudentLists);</span><br><span class="line"></span><br><span class="line">   &#x2F;*根据临时表更新xg_student表*&#x2F;</span><br><span class="line">   void updateStudent();</span><br><span class="line"></span><br><span class="line">   &#x2F;*根据临时表更新sys_user表*&#x2F;</span><br><span class="line">   void updateUser();</span><br><span class="line"></span><br><span class="line">   &#x2F;*删除临时表*&#x2F;</span><br><span class="line">   void dropStudentAndUserTemp();</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">   void insertStudent(List&lt;ZsStudent&gt; insertStudentLists);</span><br><span class="line"></span><br><span class="line">   &#x2F;*根据临时表更新sys_user表*&#x2F;</span><br><span class="line">   void insertUser(List&lt;ZsStudent&gt; insertStudentLists);</span><br><span class="line"></span><br><span class="line">   &#x2F;*学生导入时-批量插入用户角色关联数据*&#x2F;</span><br><span class="line">   void insertImpportUserRole(@Param(&quot;list&quot;) List&lt;ZsStudent&gt; </span><br><span class="line">insertStudentLists,@Param(&quot;roleId&quot;) String roleId);</span><br><span class="line"></span><br><span class="line">   &#x2F;*根据临时表更新volunteer表*&#x2F;</span><br><span class="line">   void updateVolunteer();</span><br><span class="line">   &#x2F;*插入volunteer表*&#x2F;</span><br><span class="line">   void insertVolunteer(List&lt;ZsStudent&gt; insertStudentLists);</span><br></pre></td></tr></table></figure>
-<p>insertList走branchInsert方法插入数据库。</p>
-<p>上述即为优化后的基本逻辑，主要将需多次查询数据库操作放入缓存，尽可能减少数据库操作，减少循环中业务操作，</p>
-<p>目前方案减少了数据库操作是因为将数据库操作分散，放入缓存，在导入大数据量数据时会占用大量内存（hashmap），但这是目前比较可以接受的方案，经过优化导入功能整体的性能也得到了提高。</p>
+<p><em>索引的目的在于提高查询效率</em></p>
+<p><strong>缺点</strong></p>
+<ul>
+<li>虽然索引大大提高了查询速度，同时却会降低更新表的速度，如对表进行INSERT,UPDATE和DELETE。因为更新表时，mysql不仅要保存数据，还要保存一下索引文件</li>
+<li>建立索引会占用磁盘空间的索引文件。一般情况这个问题不太严重，但如果你在要给大表上建了多种组合索引，索引文件会膨胀很宽   </li>
+<li>索引只是提高效率的一个方式，如果mysql有大数据量的表，就要花时间研究建立最优的索引，或优化查询语句。</li>
+</ul>
+<p>代码  </p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">ALTER TABLE 表名 ADD 索引类型 （unique,primary key,fulltext,index）[索引名]（字段名）</span><br><span class="line">&#x2F;&#x2F;普通索引</span><br><span class="line">alter table table_name add index index_name (column_list) ;</span><br><span class="line">&#x2F;&#x2F;唯一索引</span><br><span class="line">alter table table_name add unique (column_list) ;</span><br><span class="line">&#x2F;&#x2F;主键索引</span><br><span class="line">alter table table_name add primary key (column_list) ;</span><br></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">CREATE INDEX index_name ON table_name(username(length)); </span><br><span class="line">&#x2F;&#x2F;create只能添加这两种索引;</span><br><span class="line">CREATE INDEX index_name ON table_name (column_list)</span><br><span class="line">CREATE UNIQUE INDEX index_name ON table_name (column_list)</span><br></pre></td></tr></table></figure>
+<h2 id="使用技巧及注意事项"><a href="#使用技巧及注意事项" class="headerlink" title="使用技巧及注意事项"></a>使用技巧及注意事项</h2><ol>
+<li><p>索引不会包含有NULL的列   </p>
+<pre><code>只要列中包含有NULL值，都将不会被包含在索引中，复合索引中只要有一列含有NULL值，那么这一列对于此符合索引就是无效的。   </code></pre></li>
+<li><p>使用短索引  </p>
+<pre><code>对串列进行索引，如果可以就应该指定一个前缀长度。例如，如果有一个char（255）的列，如果在前10个或20个字符内，多数值是唯一的，那么就不要对整个列进行索引。短索引不仅可以提高查询速度而且可以节省磁盘空间和I/O操作。</code></pre></li>
+<li><p>索引列排序  </p>
+<pre><code>mysql查询只使用一个索引，因此如果where子句中已经使用了索引的话，那么order by中的列是不会使用索引的。因此数据库默认排序可以符合要求的情况下不要使用排序操作，尽量不要包含多个列的排序，如果需要最好给这些列建复合索引。</code></pre></li>
+<li><p>like语句操作<br>一般情况下不鼓励使用like操作，如果非使用不可，注意正确的使用方式。like ‘%aaa%’不会使用索引，而like ‘aaa%’可以使用索引。</p>
+</li>
+<li><p>不要在列上进行运算</p>
+</li>
+<li><p>不使用NOT IN 、&lt;&gt;、！=操作，但&lt;,&lt;=，=，&gt;,&gt;=,BETWEEN,IN是可以用到索引的</p>
+</li>
+<li><p>索引要建立在经常进行select操作的字段上。<br>  这是因为，如果这些列很少用到，那么有无索引并不能明显改变查询速度。相反，由于增加了索引，反而降低了系统的维护速度和增大了空间需求。</p>
+</li>
+<li><p>索引要建立在值比较唯一的字段上。</p>
+</li>
+<li><p>对于那些定义为text、image和bit数据类型的列不应该增加索引。因为这些列的数据量要么相当大，要么取值很少。</p>
+</li>
+<li><p>在where和join中出现的列需要建立索引。</p>
+</li>
+<li><p>where的查询条件里有不等号(where column != …),mysql将无法使用索引。</p>
+</li>
+<li><p>如果where字句的查询条件里使用了函数(如：where DAY(column)=…),mysql将无法使用索引。</p>
+</li>
+<li><p>在join操作中(需要从多个数据表提取数据时)，mysql只有在主键和外键的数据类型相同时才能使用索引，否则及时建立了索引也不会使用。</p>
+</li>
+</ol>
+<h2 id="索引的结构及种类"><a href="#索引的结构及种类" class="headerlink" title="索引的结构及种类"></a>索引的结构及种类</h2><p>数据库索引从物理结构上分为聚集索引和非聚集索引</p>
+<ol>
+<li>聚集索引即索引项在物理结构上是连续的，依据索引规则紧密排序，mysql的主键索引就是聚集索引，优点是查找快，缺点是增删耗费的时间慢，因为如果以乱序插入就会不断破坏原有数据的结构，尤其像mysql索引以b+树结构存储，如以uuid作为主键将耗费大量时间</li>
+<li>非聚集索引即为索引项在物理结构上不连续  </li>
+</ol>
+<p><strong>数据库索引从逻辑结构上分为几种，主键索引，唯一索引，联合索引，位图索引</strong></p>
+<ol>
+<li>主键索引及表在建立是以主键作为索引项建立的索引，默认为聚集索引</li>
+<li>唯一索引，能确定某个数据列将只包含彼此各不相同的值，这么做的好处：一是简化了MySQL对这个索引的管理工作，这个索引也因此而变得更有效率；二是MySQL会在有新记录插入数据表时，自动检查新记录的这个字段的值是否已经在某个记录的这个字段里出现过了；如果是，MySQL将拒绝插入那条新记录。也就是说，唯一索引可以保证数据记录的唯一性。事实上，在许多场合，人们创建唯一索引的目的往往不是为了提高访问速度，而只是为了避免数据出现重复。</li>
+<li>联合索引可以覆盖多个数据列不过遵循最左前缀原则</li>
+<li>位图索引，用于重复值较高的字段例如性别等，1是0非查询时利用&amp;运算快速求解  </li>
+</ol>
+<p><strong>最左前缀</strong></p>
+<ol>
+<li><strong>索引左前缀性的第一层意思：必须用到索引的第一个字段</strong>。select * from AAA where b=:xxx and c=sysdate;则不会用到索引，因为必须有a出现在where 语句中才会使用到该索引。</li>
+<li><strong>索引前缀性的第二层意思：对于索引的第一个字段，用like时左边必须是固定值，通配符只能出现在右边</strong>。select * from AAA where a like ‘1%’;会用到索引;而select * from AAA where a like ‘%1’;不会用到索引。</li>
+<li><strong>索引前缀性的第三层意思：如果在字段前加了函数，则索引会被抑制</strong>，例如：select * from aaa where trim(a)=1,则不会用到索引。  <pre><code>在字段前嵌入了表达式，索引也将被抑制。假设a是date格式的，那么where a+7&lt;sysdate将不会用到索引，而where a&lt;sysdate-7会用到索引。    </code></pre>　还有两个特殊声明：  <pre><code>1). select * from AAA where a=:xxx and c=sysdate与 select * from AAA where c=sysdate and a=:xxx;都会用到索引，即与where语句中字段出现的顺序无关；   
+2).select * from AAA where a=:xxx and b=1;会使用索引，此时A出现，即使其他字段不是索引字段也会使用到索引。</code></pre></li>
+</ol>
 
       
       <!-- reward -->
@@ -146,7 +177,7 @@
     <footer class="article-footer">
       
       
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/java/" rel="tag">java</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E4%B8%9A%E5%8A%A1/" rel="tag">业务</a></li></ul>
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E6%95%B0%E6%8D%AE%E5%BA%93/" rel="tag">数据库</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E7%B4%A2%E5%BC%95/" rel="tag">索引</a></li></ul>
 
 
     </footer>
@@ -157,19 +188,19 @@
   
   <nav class="article-nav">
     
-      <a href="/2020/02/27/linux/" class="article-nav-link">
+      <a href="/2020/02/25/excel/" class="article-nav-link">
         <strong class="article-nav-caption">上一篇</strong>
         <div class="article-nav-title">
           
-            常用Linux命令
+            Excel导入优化
           
         </div>
       </a>
     
     
-      <a href="/2020/02/25/suoyin/" class="article-nav-link">
+      <a href="/2020/02/19/jvm/" class="article-nav-link">
         <strong class="article-nav-caption">下一篇</strong>
-        <div class="article-nav-title">数据库索引概述</div>
+        <div class="article-nav-title">jvm简述</div>
       </a>
     
   </nav>
