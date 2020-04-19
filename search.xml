@@ -1,6 +1,96 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>利用vps搭建vpn</title>
+    <url>/2020/03/21/v2ray/</url>
+    <content><![CDATA[<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>许多小伙伴在google或者外国网站查阅资料时，网速很慢或者经常无法访问，今天笔者就带各位搭建自己的vpn。内容包括VPS购买，连接VPS，一键搭建V2ray和SS，开启bbr加速，客户端配置</p>
+<a id="more"></a>  
+
+<h2 id="一、基本概念"><a href="#一、基本概念" class="headerlink" title="一、基本概念"></a>一、基本概念</h2><h3 id="1-什么是墙"><a href="#1-什么是墙" class="headerlink" title="1.什么是墙"></a>1.什么是墙</h3><pre><code>GFW：防火长城（英文名称Great Firewall of China，简写为Great Firewall，缩写GFW），也称中国防火墙或中国国家防火墙
+，指中华人民共和国政府在其管辖因特网内  部建立的多套网络审查系统的总称，包括相关行政审查系统。GFW中的主要技术包括
+国家入口网关的IP封锁、主干路由器的关键字过滤阻断、域名劫持和HTTPS证书过滤等4种。那些被限制的网站，根本原因是因为
+其网站上发布了中国政府不能接受的政治等方面的内容，有些综合性或技术性的网站只是含有少量的或可能牵涉到这些信息也会
+被整体封锁，例如曾经对于Google、维基百科的全面封锁，还有就是对色情、青少年犯罪等网站的禁止。
+这是百度出来的结果，通俗来讲，gfw就是用来阻止中国大陆网民访问一些国外网站的防火墙，而其中有些网站我们总要用到
+比如github，Google等，而我们将要搭建的v2ray就可以很好的解决这个问题。</code></pre><h3 id="2-基本原理"><a href="#2-基本原理" class="headerlink" title="2. 基本原理"></a>2. 基本原理</h3><pre><code>gfw封锁网站主要分两种方式，一种是依靠人工举报，另一种是机器检测，人工检测暂且不谈，机器检测主要策略包括关键字检测、
+ip封锁、特定端口封锁、dns污染等形式。
+而我们采用的形式是购买一台不被墙的境外服务器，利用其搭建我们的环境，从而避开墙的干扰。</code></pre><h2 id="二、搭建过程"><a href="#二、搭建过程" class="headerlink" title="二、搭建过程"></a>二、搭建过程</h2><h3 id="1、购买vps"><a href="#1、购买vps" class="headerlink" title="1、购买vps"></a>1、购买vps</h3><pre><code>市面上可供我们选择的vps有很多种，包括搬瓦工、谷歌云、vultr等，谷歌云的优势就是便宜（基本免费）
+但需要国外信用卡，搬瓦工稳定，但是价格略贵，出于经济和性能的考虑，
+我选择了vultr，付款方便，并且不使用也不会收费。
+在vultr的官网上注册完毕后，我们就可以选择我们要搭建vps的配置了，我选
+择的是最便宜的云计算服务器，一个月5美元，
+之后我们可以选择服务器位置和操作系统， 之后我们点击deploy now 我们的vps就搭建完了。</code></pre><img src="https://raw.githubusercontent.com/jojoecfy/pic/master/20200415204507.png"/>
+
+<p>我们可以看到我们服务器的ip，这里我们要利用ping工具检测此ip是否被墙 ，如果被墙就重复以上步骤直到建立起一个不被墙的vps<br>   <img src="https://raw.githubusercontent.com/jojoecfy/pic/master/20200415203439.png"/><br>   <img src="https://raw.githubusercontent.com/jojoecfy/pic/master/ping.png"/></p>
+<h3 id="2、安装环境"><a href="#2、安装环境" class="headerlink" title="2、安装环境"></a>2、安装环境</h3><p>   之后我们需要安装Xshell操纵我们的服务器。<br>    利用xshell连接至我们的服务器，首先，我们要关闭服务器防火墙</p>
+<pre><code>其次同步服务器时间</code></pre><blockquote>
+<p>ln -sf /usr/share/zoneinfo/Asia/Shanghai  /etc/localtime</p>
+</blockquote>
+<p>下载并启动 v2ray 脚本 </p>
+<blockquote>
+<p> wget <a href="https://install.direct/go.sh" target="_blank" rel="noopener">https://install.direct/go.sh</a><br>bash go.sh<br>systemctl start v2ray </p>
+</blockquote>
+<pre><code>此时查看进程，会发现v2ray进程已经启动</code></pre><h3 id="3、客户端下载"><a href="#3、客户端下载" class="headerlink" title="3、客户端下载"></a>3、客户端下载</h3><pre><code>接下来我们要下载客户端
+链接：https://pan.baidu.com/s/1DsUUod6W8oxyexNSrzbA7w  提取码：7bjt
+这是Windows和安卓的客户端。
+下载完后打开客户端
+填写内容</code></pre><img src="https://raw.githubusercontent.com/jojoecfy/pic/master/v2ray-1.png"/>
+
+
+<pre><code>用户id 额外id，在v2ray。conf里</code></pre><img src="https://raw.githubusercontent.com/jojoecfy/pic/master/v2ray-3.png"/>
+
+
+<pre><code>客户端设置 路由规则</code></pre><img src="https://raw.githubusercontent.com/jojoecfy/pic/master/v2ray-2.png"/>
+
+
+<pre><code>开启pac 代理 
+此时你就可以连上google YouTube的网站了</code></pre><h3 id="4、bbr加速"><a href="#4、bbr加速" class="headerlink" title="4、bbr加速"></a>4、bbr加速</h3><pre><code>网速其实并不理想，
+此时我们需要开启bbr加速</code></pre><blockquote>
+<p>wget –no-check-certificate <a href="https://github.com/teddysun/across/raw/master/bbr.sh" target="_blank" rel="noopener">https://github.com/teddysun/across/raw/master/bbr.sh</a> &amp;&amp; chmod +x bbr.sh &amp;&amp; ./bbr.sh<br>   开启bbr 需要确认内核版本》=4.2<br>uname -r<br>   始终无法提升内核版本可按以下命令操作</p>
+</blockquote>
+<blockquote>
+<p>rpm –import <a href="https://www.elrepo.org/RPM-GPG-KEY-elrepo.org" target="_blank" rel="noopener">https://www.elrepo.org/RPM-GPG-KEY-elrepo.org</a><br>yum install <a href="https://www.elrepo.org/elrepo-release-7.0-3.el7elrepo.noarch.rpm" target="_blank" rel="noopener">https://www.elrepo.org/elrepo-release-7.0-3.el7elrepo.noarch.rpm</a><br>yum –disablerepo=”*” –enablerepo=”elrepo-kernel” listavailable<br>vi /etc/default/grub<br>GRUB_DEFAULT=0<br>grub2-mkconfig -o /boot/grub2/grub.cfg<br>之后重启服务器，确认内核版本</p>
+</blockquote>
+<p>输入</p>
+<blockquote>
+<p>sysctl net.ipv4.tcp_congestion_control<br>输出 net.ipv4.tcp_congestion_control = bbr 即为成功</p>
+</blockquote>
+<img src="https://raw.githubusercontent.com/jojoecfy/pic/master/youtube.png"/>
+
+<h2 id="三、注意事项"><a href="#三、注意事项" class="headerlink" title="三、注意事项"></a>三、注意事项</h2><pre><code>1、时间同步
+    时间一定要与我们的时间同步，否则会连接不上
+2、开启服务
+    如遇到问题，多多查看进程，确认服务处于开启状态
+3、防火墙
+    除了关闭防火墙还须确认selinux 状态，这两个都要关，避免出现不必要麻烦</code></pre><h2 id="四、搭建nextcloud"><a href="#四、搭建nextcloud" class="headerlink" title="四、搭建nextcloud"></a>四、搭建nextcloud</h2><pre><code>既然服务器买完了，闲着也是闲着，不如用来搭一个云盘。我们利用nextcloud搭建我们的云盘。</code></pre><h3 id="1、-环境搭建"><a href="#1、-环境搭建" class="headerlink" title="1、 环境搭建"></a>1、 环境搭建</h3><pre><code>nextcloud可以依赖nginx 和Apache运行，在本文中我们利用Apache服务，除此之外，我们需要安装php7.2，mysql环境
+按以下命令安装并启动服务即可</code></pre><blockquote>
+<p>yum install httpd<br>systemctl start httpd<br>systemctl enable httpd</p>
+</blockquote>
+<blockquote>
+<p>rpm -Uvh <a href="https://mirror.webtatic.com/yum/el7/epel-release.rpm" target="_blank" rel="noopener">https://mirror.webtatic.com/yum/el7/epel-release.rpm</a><br>rpm -Uvh <a href="https://mirror.webtatic.com/yum/el7/webtatic-release.rpm" target="_blank" rel="noopener">https://mirror.webtatic.com/yum/el7/webtatic-release.rpm</a><br>yum install php72w php72w-cli php72w-common php72w-devel php72w-embedded php72w-fpm php72w-gd php72w-mbstring php72w-mysqlnd php72w-opcache  &gt; php72w-pdo php72w-xml php72w-ldap php72w-mcrypt<br>service php-fpm start<br>systemctl enable php-fpm</p>
+</blockquote>
+<blockquote>
+<p>yum install mariadb-server.x86_64<br>systemctl start mariadb<br>mysqladmin -u root password ‘123456’<br>mysql -u root -p123456<br>创建数据库：MariaDB [(none)]&gt; create database nextcloud;</p>
+<p>GRANT ALL PRIVILEGES ON <em>.</em> TO ‘root’@’%’ IDENTIFIED BY ‘123456’ WITH GRANT OPTION;<br>flush privileges；</p>
+</blockquote>
+<h3 id="2、-下载nextcloud"><a href="#2、-下载nextcloud" class="headerlink" title="2、 下载nextcloud"></a>2、 下载nextcloud</h3><pre><code>在安装完毕后，我们需要下载nextcloud，有两种方式，一是下载nextcloudzip包，二是下载安装脚本
+在本文中我们着重讲第二种方式
+在/www/var/html下新建文件夹 nextcloud
+我们需要下载setupnextcloud.php脚本至新建目录下，访问ip/nextcloud/setupnextcloud.php
+wget https://download.nextcloud.com/server/installer/setup-nextcloud.php
+按网页所提示步骤进行
+如果有错误信息，要根据提示解决错误重新访问</code></pre><img src="https://raw.githubusercontent.com/jojoecfy/pic/master/nextcloud-1.png"/>
+
+<img src="https://raw.githubusercontent.com/jojoecfy/pic/master/nextcloud-2.png"/>
+
+<img src="https://raw.githubusercontent.com/jojoecfy/pic/master/nextcloud-3.png"/>
+
+<img src="https://raw.githubusercontent.com/jojoecfy/pic/master/nextcloud-4.png"/>]]></content>
+      <tags>
+        <tag>linux</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>stream流简单应用</title>
     <url>/2020/03/01/stream/</url>
     <content><![CDATA[<p>jdk13已经发布了，许多小伙伴连jdk8都没摸透，笔者在这里简单向各位介绍下jdk8中的一些api，这些也是笔者在实际工作中用到的，如有疏漏，请多海涵。</p>
