@@ -99,8 +99,8 @@ wget https://download.nextcloud.com/server/installer/setup-nextcloud.php
 <a id="more"></a>
 <h3 id="场景一：把list转为map，对象中的id作为key，对象作为value"><a href="#场景一：把list转为map，对象中的id作为key，对象作为value" class="headerlink" title="场景一：把list转为map，对象中的id作为key，对象作为value"></a>场景一：把list转为map，对象中的id作为key，对象作为value</h3><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">Map &lt;String,Object&gt; map&#x3D;new HashMap&lt;&gt;();</span><br><span class="line">for(Object o:list)&#123;</span><br><span class="line">    map.put(o.getid(),o);</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>如果是在java8前，大家肯定都会像上面这样写，但这样写不够优雅，在java8 后我们可以更方便的写</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">Map&lt;String, Object&gt; map &#x3D; list.stream().collect(Collectors.toMap(Object::getId, Obejct));</span><br></pre></td></tr></table></figure>
-<p>这样一行就可以搞定，可读性高。</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">Map&lt;String, Object&gt; map &#x3D; list.stream().collect(Collectors.toMap(Object::getId, Obejct),(oldData,newData)-&gt;newData);</span><br></pre></td></tr></table></figure>
+<p>这样一行就可以搞定，可读性高。(oldData,newData)-&gt;newData 这步是为了在key重复时取新值</p>
 <h3 id="场景二：计算list中属性和"><a href="#场景二：计算list中属性和" class="headerlink" title="场景二：计算list中属性和"></a>场景二：计算list中属性和</h3><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">heji.setFee(feeList.stream().map(i-&gt;i.getFee()).reduce((float)0, (a, b) -&gt; a + b));</span><br></pre></td></tr></table></figure>
 <h3 id="场景三：获取学生专业的部门信息"><a href="#场景三：获取学生专业的部门信息" class="headerlink" title="场景三：获取学生专业的部门信息"></a>场景三：获取学生专业的部门信息</h3><p>使用option可以很方便的判断null值，并设置默认值</p>
 <figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">Optional.ofNullable(student.getMajor())</span><br><span class="line">    .map(i-&gt;i.getDepartment())</span><br><span class="line">    .map(i-&gt;i.getName())</span><br><span class="line">    .orElse(&quot;&quot;));</span><br></pre></td></tr></table></figure>
